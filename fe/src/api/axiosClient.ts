@@ -1,8 +1,14 @@
 import axios, { type AxiosInstance } from "axios";
 
-// Dùng biến môi trường khi build (Vite), fallback về localhost khi dev
+// Base URL:
+// - Ưu tiên VITE_API_URL nếu có
+// - Nếu đang dev: dùng localhost
+// - Nếu build production (deploy): dùng BE trên Render
 const API =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  import.meta.env.VITE_API_URL ??
+  (import.meta.env.DEV
+    ? "http://localhost:3000/api"
+    : "https://englishapp-qpn7.onrender.com/api");
 
 const axiosClient: AxiosInstance = axios.create({
   baseURL: API,

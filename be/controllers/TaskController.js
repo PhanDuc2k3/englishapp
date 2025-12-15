@@ -1,4 +1,4 @@
-const taskService = require("../services/taskService");
+const taskService = require("../services/TaskService");
 const Question = require("../models/Question")
 const Task = require("../models/Task")
 exports.newTask = async (req, res) => {
