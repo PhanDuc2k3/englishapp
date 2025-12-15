@@ -1,14 +1,19 @@
 import axiosClient from "./axiosClient";
 import type { Task, NewTask, QuestionAdd, AnswerSubmit } from "../types/task";
 
+type TaskWithProgress = Task & {
+  userAnswers?: Record<string, string>;
+  submitted?: boolean;
+};
+
 const taskApi = {
   // Lấy tất cả task
   getAll: () =>
     axiosClient.get<{ message: string; task: Task[] }>("/task/getall"),
 
-  // Lấy task theo ID
+  // Lấy task theo ID (kèm tiến độ của user hiện tại)
   getTaskById: (id: string) =>
-    axiosClient.get<{ message: string; task: Task }>(`/task/${id}`),
+    axiosClient.get<{ message: string; task: TaskWithProgress }>(`/task/${id}`),
 
   // Lấy leaderboard của 1 task
   getLeaderboard: (id: string) =>

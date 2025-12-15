@@ -69,10 +69,11 @@ const StoreAdmin: React.FC = () => {
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === "string") {
+        const preview = reader.result;
         setForm((prev) => ({
           ...prev,
           imageFile: file,
-          imagePreview: reader.result || "",
+          imagePreview: preview,
         }));
       }
     };
