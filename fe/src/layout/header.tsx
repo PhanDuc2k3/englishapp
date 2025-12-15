@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Menu, CircleUserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "../types/user";
+import axiosClient from "../api/axiosClient";
 
 interface HeaderProps {
   sidebarOpen: boolean;
@@ -14,14 +15,48 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        setUser(null);
+    const loadFromStorage = () => {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+        } catch {
+          setUser(null);
+        }
       }
-    }
+    };
+
+    loadFromStorage();
+
+    const interval = setInterval(async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const res = await axiosClient.get<{ message: string; user: User }>(
+          "/user/me"
+        );
+        const freshUser: User = {
+          id: res.data.user._id || (res.data.user as any).id,
+          _id: res.data.user._id,
+          username: res.data.user.username,
+          email: res.data.user.email,
+          role: res.data.user.role,
+          point: res.data.user.point,
+          avatar: res.data.user.avatar,
+          bankName: (res.data.user as any).bankName,
+          bankAccountName: (res.data.user as any).bankAccountName,
+          bankAccountNumber: (res.data.user as any).bankAccountNumber,
+        };
+        setUser(freshUser);
+        localStorage.setItem("user", JSON.stringify(freshUser));
+      } catch (e) {
+        // Nếu token hết hạn thì không làm gì, để user tự login lại
+        console.error("❌ Lỗi đồng bộ thông tin user:", e);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const isAdmin = user?.role === "admin";

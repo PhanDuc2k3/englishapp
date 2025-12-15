@@ -167,7 +167,17 @@ const submitAnswer = async (id_task, id_user, answers) => {
   task.markModified(`user.${userIndex}.score`);
   task.markModified(`user.${userIndex}.submitted`);
 
-  await task.save();
+  try {
+    await task.save();
+  } catch (err) {
+    // Nếu task đã bị xoá / thay đổi version trong lúc lưu -> báo lỗi thân thiện
+    if (err && err.name === "VersionError") {
+      throw new Error(
+        "Bài kiểm tra đã được cập nhật hoặc xoá, vui lòng tải lại trang và tham gia lại."
+      );
+    }
+    throw err;
+  }
 
   return {
     message: "Nộp thành công",
