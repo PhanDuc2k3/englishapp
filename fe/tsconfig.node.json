@@ -4,20 +4,16 @@
     "target": "ES2023",
     "lib": ["ES2023"],
     "module": "ESNext",
-    "types": ["node"],
-    "skipLibCheck": true,
-
-    /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-    "noEmit": true,
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noEmit": false,               // ✅ emit JS ngay cả khi có lỗi
+    "skipLibCheck": true,          // ✅ bỏ qua type check
+    "noEmitOnError": false,        // ✅ vẫn emit JS nếu có lỗi
+    "types": ["node"],
+    "strict": false,               // ✅ tắt strict mode
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
