@@ -52,6 +52,7 @@ const Task: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Lấy task + leaderboard
   useEffect(() => {
@@ -103,14 +104,16 @@ const Task: React.FC = () => {
 
 const handleSubmit = async () => {
   if (!task) return;
-  if (task.submitted) {
-    alert("Bạn đã nộp bài này rồi, không thể làm lại.");
+  if (task.submitted || submitting) {
+    // Đã nộp hoặc đang nộp, không cho bấm thêm
     return;
   }
 
   const answers: AnswerSubmit[] = Object.entries(selectedAnswers).map(
     ([id_question, selectedAnswer]) => ({ id_question, selectedAnswer })
   );
+
+  setSubmitting(true);
 
   try {
     // Không cần lấy userId từ localStorage nữa
@@ -133,19 +136,22 @@ const handleSubmit = async () => {
         }
       }
       alert(
-        `✅ Nộp bài thành công!\nSố câu đúng: ${reward.correctCount}/${reward.totalQuestions}\nĐiểm: ${reward.score.toFixed?.(2) ?? reward.score}/10\nTiền nhận: ${reward.money.toLocaleString("vi-VN")} đ`
+        `✅ Nộp bài thành công!\nSố câu đúng: ${reward.correctCount}/${reward.totalQuestions}\nĐiểm: ${reward.score.toFixed?.(2) ?? reward.score}/10\nTiền nhận: ${reward.money.toLocaleString(
+          "vi-VN"
+        )} đ`
       );
     } else {
       alert("✅ Nộp bài thành công!");
     }
     // Cập nhật trạng thái submitted ở FE để chặn làm lại
-    setTask((prev) =>
-      prev ? { ...prev, submitted: true } : prev
-    );
+    setTask((prev) => (prev ? { ...prev, submitted: true } : prev));
     navigate("/"); // Quay về trang chủ
   } catch (err: any) {
     console.error("❌ Lỗi khi nộp bài:", err);
-    alert(err?.response?.data?.message || err.message || "❌ Nộp bài thất bại");
+    alert(
+      err?.response?.data?.message || err.message || "❌ Nộp bài thất bại"
+    );
+    setSubmitting(false); // Cho phép nộp lại nếu có lỗi
   }
 };
 
@@ -267,9 +273,10 @@ const handleSubmit = async () => {
         {!task.submitted && (
           <button
             onClick={handleSubmit}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          disabled={submitting}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded disabled:opacity-60"
           >
-            Nộp bài
+          {submitting ? "Đang nộp..." : "Nộp bài"}
           </button>
         )}
         <button
