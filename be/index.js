@@ -12,9 +12,15 @@ const giftRouter = require("./Routes/GiftRoutes");
 
 connectDB();
 
-app.use(cors({
-    origin:"http://localhost:5173"
-}))
+// CORS cho cả localhost (dev) và FE deploy trên Vercel
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://englishapp-fawn.vercel.app",
+    ],
+  })
+);
 app.use(express.json());
 
 app.get("/", (req, res) => {

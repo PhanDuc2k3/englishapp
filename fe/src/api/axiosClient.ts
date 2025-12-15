@@ -1,12 +1,14 @@
 import axios, { type AxiosInstance } from "axios";
 
-const API = "http://localhost:3000/api";
+// Dùng biến môi trường khi build (Vite), fallback về localhost khi dev
+const API =
+  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const axiosClient: AxiosInstance = axios.create({
-    baseURL: API,
-    headers: {
-        "Content-Type": "application/json",
-    },
+  baseURL: API,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 // Interceptor: tự động thêm Authorization header nếu có token
