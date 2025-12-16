@@ -7,6 +7,7 @@ const {
   updateQuestion,
   removeQuestion,
   generateAIQuestions,
+  generateTOEICQuestionsByLevel,
 } = require("../controllers/QuestionController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -23,6 +24,14 @@ router.post(
   authMiddleware,
   adminMiddleware,
   generateAIQuestions
+);
+
+// 🔹 Admin dùng AI sinh từ vựng TOEIC theo cấp độ (A1, A2, B1, B2, C1, C2)
+router.post(
+  "/generate-toeic",
+  authMiddleware,
+  adminMiddleware,
+  generateTOEICQuestionsByLevel
 );
 
 module.exports = router;

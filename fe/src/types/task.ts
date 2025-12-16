@@ -15,6 +15,11 @@ export interface QuestionType {
 export interface Task {
   _id: string;
   name: string;
+  folder?: {
+    _id: string;
+    name: string;
+    color?: string;
+  } | null;
   question: QuestionType[];
   users?: string[]; // danh sách userId
   createdAt?: string;
@@ -28,6 +33,8 @@ export interface NewTask {
   numQuestions?: number;
   category?: string;
   topic?: string;
+  maxDuplicatePercent?: number; // Tỷ lệ % cho phép trùng (0-100, mặc định 20)
+  folder?: string | null; // ID của folder (null = không có folder)
 }
 
 export interface QuestionAdd {

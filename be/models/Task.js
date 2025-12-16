@@ -6,6 +6,11 @@ const taskSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    folder: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Folder",
+        default: null // null = không có folder (uncategorized)
+    },
     question: [{
         type: mongoose.Schema.Types.ObjectId,
         ref:"Question"

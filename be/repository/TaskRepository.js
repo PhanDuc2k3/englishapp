@@ -3,8 +3,9 @@ const mongoose = require("mongoose")
 const getAllTask = async () => {
     console.log(Task); // nếu hiện undefined -> lỗi export
 
-    // Populate chi tiết câu hỏi để FE có thể xem nội dung & đáp án trong màn quản lý bài tập
-    return await Task.find().populate("question");
+    // Populate chi tiết câu hỏi và folder để FE có thể xem nội dung & đáp án trong màn quản lý bài tập
+    // Sắp xếp: mới nhất trước (createdAt DESC)
+    return await Task.find().sort({ createdAt: -1 }).populate("question").populate("folder");
 }
 
 const updateTask = async (id_task, id_question) => {
@@ -92,6 +93,32 @@ const Total = (user) => {
   return user.answers.filter((u) => u.isCorrect).length;
 };
 
+/**
+ * Lấy danh sách tất cả question IDs đã được sử dụng trong các task khác
+ * (trừ task hiện tại nếu có)
+ */
+const getUsedQuestionIds = async (excludeTaskId = null) => {
+  const filter = {};
+  if (excludeTaskId) {
+    filter._id = { $ne: excludeTaskId };
+  }
+  
+  const tasks = await Task.find(filter)
+    .select("question")
+    .lean();
+  
+  // Lấy tất cả question IDs từ các task
+  const usedQuestionIds = new Set();
+  tasks.forEach((task) => {
+    if (Array.isArray(task.question)) {
+      task.question.forEach((qId) => {
+        usedQuestionIds.add(qId.toString());
+      });
+    }
+  });
+  
+  return Array.from(usedQuestionIds);
+};
 
 module.exports = {
     getAllTask,
@@ -107,4 +134,5 @@ module.exports = {
     updateAnswer,
     Total,
     findByIdTask,
+    getUsedQuestionIds,
 }

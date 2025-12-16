@@ -3,7 +3,7 @@ const Question = require("../models/Question")
 const Task = require("../models/Task")
 exports.newTask = async (req, res) => {
   try {
-    const { name, mode, numQuestions, category, topic } = req.body;
+    const { name, mode, numQuestions, category, topic, maxDuplicatePercent, folder } = req.body;
 
     const newTask = await taskService.newTask({
       name,
@@ -11,6 +11,8 @@ exports.newTask = async (req, res) => {
       numQuestions,
       category,
       topic,
+      maxDuplicatePercent, // Tỷ lệ % cho phép trùng (0-100, mặc định 20)
+      folder, // ID của folder (có thể null)
     });
 
     res.status(200).json({
@@ -51,6 +53,21 @@ exports.updateTask = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+
+// Cập nhật thông tin task (tên, folder, etc.)
+exports.updateTaskInfo = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, folder } = req.body;
+        const updatedTask = await taskService.updateTaskInfo(id, { name, folder });
+        res.status(200).json({
+            message: "Cập nhật task thành công",
+            task: updatedTask,
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 
 exports.addQuestion = async (req, res) => {
     try {

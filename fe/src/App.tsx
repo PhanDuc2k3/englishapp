@@ -11,6 +11,7 @@ import Task from "./page/Task/task"
 import Leaderboard from "./page/Task/leaderboard"
 import NewTask from "./page/NewTask/newTask"
 import Profile from "./page/profile/profile"
+import FolderDetail from "./page/Folder/folderDetail"
 const App: React.FC = () => {
   return (
     <Router>
@@ -26,6 +27,7 @@ const App: React.FC = () => {
           <Route path="/task/:id/leaderboard" element={<Leaderboard />} />
           <Route path="/task_management" element={<NewTask />} />
           <Route path="/profile" element={<Profile/>}/>
+          <Route path="/folder/:id" element={<FolderDetail />} />
         </Route>
       </Routes>
     </Router>

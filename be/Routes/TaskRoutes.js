@@ -6,6 +6,7 @@ const {
   newTask,
   getAllTask,
   updateTask,
+  updateTaskInfo,
   addQuestion,
   addUser,
   removeUser,
@@ -26,6 +27,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 router.post("/newtask", authMiddleware, newTask);
 router.get("/getall", getAllTask);
 router.put("/updatetask/:id", authMiddleware, updateTask);
+router.put("/update/:id", authMiddleware, updateTaskInfo); // Cập nhật thông tin task (tên, folder)
 router.put("/addquestion/:id", authMiddleware, addQuestion);
 router.put("/adduser/:id", authMiddleware, addUser);
 router.delete("/removeuser/:id", authMiddleware, removeUser);

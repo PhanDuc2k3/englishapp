@@ -24,7 +24,20 @@ const questionApi = {
       total: number;
       questions: Question[];
     }>("/question/generate-ai", params),
-update: (id: string, data: NewQuestion) =>
+
+  // Gọi AI để sinh từ vựng TOEIC theo cấp độ CEFR – chỉ admin mới có quyền
+  generateTOEICByLevel: (params: {
+    numQuestions: number;
+    level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+  }) =>
+    axiosClient.post<{
+      message: string;
+      total: number;
+      level: string;
+      questions: Question[];
+    }>("/question/generate-toeic", params),
+
+  update: (id: string, data: NewQuestion) =>
     axiosClient.put(`/question/update/${id}`, data),
   // Xóa câu hỏi
   delete: (id: string) =>

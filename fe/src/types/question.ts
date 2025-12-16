@@ -12,6 +12,7 @@ export interface NewQuestion {
 
 export interface Question extends NewQuestion {
   _id: string;
+  level?: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
   createdAt?: string;
   updatedAt?: string;
 }

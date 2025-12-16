@@ -8,8 +8,16 @@ const Question = require("../models/Question");
 /**
  * Tạo task mới
  * - mode = "ai": sinh câu hỏi bằng AI rồi gắn vào task
- * - mode = "auto": tự động ghép câu hỏi có sẵn theo chủ đề
+ * - mode = "auto": tự động ghép câu hỏi có sẵn theo chủ đề (tránh trùng với task khác)
  * - mode khác / không truyền: chỉ tạo task rỗng
+ * 
+ * @param {Object} params
+ * @param {string} params.name - Tên task
+ * @param {string} params.mode - "ai" | "auto" | "manual"
+ * @param {number} params.numQuestions - Số câu hỏi cần
+ * @param {string} params.category - Thể loại
+ * @param {string} params.topic - Chủ đề
+ * @param {number} params.maxDuplicatePercent - Tỷ lệ % tối đa cho phép trùng (0-100, mặc định 20)
  */
 const newTask = async ({
   name,
@@ -17,16 +25,19 @@ const newTask = async ({
   numQuestions,
   category,
   topic,
+  maxDuplicatePercent = 20,
+  folder = null,
 }) => {
   const creationMode = mode || "manual";
   const count = Number(numQuestions) || 5;
   const safeCategory = category || "vocabulary";
   const safeTopic = topic || "";
+  const maxDuplicate = Math.max(0, Math.min(100, Number(maxDuplicatePercent) || 20));
 
   let questionIds = [];
 
   if (creationMode === "ai") {
-    // Gọi AI sinh câu hỏi & lưu DB
+    // Gọi AI sinh câu hỏi & lưu DB (câu hỏi mới nên không trùng)
     const createdQuestions = await QuestionService.generateQuestionsWithAI({
       numQuestions: count,
       category: safeCategory,
@@ -34,23 +45,79 @@ const newTask = async ({
     });
     questionIds = createdQuestions.map((q) => q._id);
   } else if (creationMode === "auto") {
-    // Lọc câu hỏi có sẵn theo chủ đề (title chứa topic, tiếng Việt cũng được)
+    // Lấy danh sách câu hỏi đã được dùng trong các task khác
+    const usedQuestionIds = await taskRepo.getUsedQuestionIds();
+    const usedQuestionIdsSet = new Set(usedQuestionIds);
+
+    // Lọc câu hỏi có sẵn theo chủ đề
     const filter = {};
     if (safeTopic) {
       filter.title = { $regex: safeTopic, $options: "i" };
     }
-    // Tạm thời category chưa lưu riêng nên bỏ qua hoặc dùng thêm filter.name nếu muốn
-    const existingQuestions = await Question.find(filter)
+    
+    // Lấy nhiều câu hỏi hơn để có thể chọn lọc
+    const allMatchingQuestions = await Question.find(filter)
       .sort({ createdAt: -1 })
-      .limit(count)
       .lean();
 
-    questionIds = existingQuestions.map((q) => q._id);
+    // Phân loại: chưa dùng vs đã dùng
+    const unusedQuestions = [];
+    const usedQuestions = [];
+    
+    allMatchingQuestions.forEach((q) => {
+      const qId = q._id.toString();
+      if (usedQuestionIdsSet.has(qId)) {
+        usedQuestions.push(q);
+      } else {
+        unusedQuestions.push(q);
+      }
+    });
+
+    // Tính số câu hỏi có thể trùng (theo maxDuplicatePercent)
+    const maxDuplicateCount = Math.floor((count * maxDuplicate) / 100);
+    const minUnusedCount = count - maxDuplicateCount;
+
+    // Ưu tiên chọn câu hỏi chưa dùng
+    const selectedQuestions = [];
+    
+    // Chọn câu hỏi chưa dùng trước
+    if (unusedQuestions.length > 0) {
+      const unusedToTake = Math.min(minUnusedCount, unusedQuestions.length);
+      selectedQuestions.push(...unusedQuestions.slice(0, unusedToTake));
+    }
+
+    // Nếu chưa đủ, chọn thêm từ câu hỏi đã dùng (cho phép trùng một ít)
+    const remaining = count - selectedQuestions.length;
+    if (remaining > 0 && usedQuestions.length > 0) {
+      const usedToTake = Math.min(remaining, usedQuestions.length, maxDuplicateCount);
+      selectedQuestions.push(...usedQuestions.slice(0, usedToTake));
+    }
+
+    // Nếu vẫn chưa đủ, lấy thêm từ câu hỏi chưa dùng (nếu còn)
+    const stillRemaining = count - selectedQuestions.length;
+    if (stillRemaining > 0 && unusedQuestions.length > selectedQuestions.length) {
+      const additionalUnused = unusedQuestions.slice(
+        selectedQuestions.length,
+        selectedQuestions.length + stillRemaining
+      );
+      selectedQuestions.push(...additionalUnused);
+    }
+
+    questionIds = selectedQuestions.map((q) => q._id);
+    
+    // Nếu vẫn không đủ câu hỏi, cảnh báo
+    if (questionIds.length < count) {
+      console.warn(
+        `⚠️ Chỉ tìm được ${questionIds.length}/${count} câu hỏi phù hợp. ` +
+        `Đã dùng: ${usedQuestions.length}, Chưa dùng: ${unusedQuestions.length}`
+      );
+    }
   }
 
   const newTask = new Task({
     name,
     question: questionIds,
+    folder: folder || null,
   });
   await newTask.save();
   return newTask;
@@ -67,6 +134,20 @@ const updateTask = async (id_task,id_question) => {
     const existingQuestion = await taskRepo.findIdQuestion(id_task, id_question);
     if (!existingQuestion) throw new Error("Cau hoi khong ton tai");
     return await taskRepo.updateTask(id_task, id_question);
+}
+
+// Cập nhật thông tin task (tên, folder, etc.)
+const updateTaskInfo = async (id_task, updateData) => {
+    const task = await Task.findById(id_task);
+    if (!task) throw new Error("Task không tồn tại");
+    
+    if (updateData.name !== undefined) task.name = updateData.name;
+    if (updateData.folder !== undefined) {
+        task.folder = updateData.folder || null;
+    }
+    
+    await task.save();
+    return await Task.findById(id_task).populate("folder").populate("question");
 }
 
 const addQuestion = async (id_task, id_question) => {
@@ -362,6 +443,7 @@ module.exports = {
   newTask,
   getAllTask,
   updateTask,
+  updateTaskInfo,
   addQuestion,
   addUser,
   removeUser,

@@ -1,7 +1,7 @@
 const Question = require("../models/Question");
 
-const newQuestion = async (title, question, answer,name) => {
-    const newQuestion = new Question({title, question, answer,name});
+const newQuestion = async (title, question, answer, name, level = null) => {
+    const newQuestion = new Question({title, question, answer, name, level});
     await newQuestion.save();
     return newQuestion;
 }

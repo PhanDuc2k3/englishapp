@@ -9,7 +9,7 @@ const API =
   (import.meta.env.DEV
     ? "http://localhost:3000/api"
     : "https://englishapp-qpn7.onrender.com/api");
-
+console.log("connect to API: ", API);
 const axiosClient: AxiosInstance = axios.create({
   baseURL: API,
   headers: {

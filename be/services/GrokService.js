@@ -134,6 +134,142 @@ Chỉ trả về MẢNG JSON, không thêm giải thích, không thêm text ngo�
   return questions;
 }
 
+/**
+ * Gọi Groq để sinh từ vựng TOEIC theo cấp độ CEFR (A1, A2, B1, B2, C1, C2)
+ * 
+ * @param {Object} options
+ * @param {number} options.numQuestions - Số từ vựng cần sinh
+ * @param {string} options.level - Cấp độ CEFR: 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'
+ */
+async function generateTOEICVocabularyByLevel({ numQuestions, level }) {
+  if (!GROQ_API_KEY) {
+    throw new Error("Chưa cấu hình GROQ_API_KEY hoặc GROK_API_KEY");
+  }
+
+  // Mô tả độ khó theo cấp độ
+  const levelDescriptions = {
+    'A1': 'cơ bản nhất, dành cho người mới bắt đầu (ví dụ: hello, book, cat)',
+    'A2': 'cơ bản, dành cho người học sơ cấp (ví dụ: beautiful, understand, important)',
+    'B1': 'trung cấp, dành cho người học có thể giao tiếp cơ bản (ví dụ: opportunity, significant, approach)',
+    'B2': 'trung cấp cao, dành cho người học có thể giao tiếp tự tin (ví dụ: sophisticated, comprehensive, substantial)',
+    'C1': 'cao cấp, dành cho người học thành thạo (ví dụ: meticulous, ambiguous, facilitate)',
+    'C2': 'thành thạo, dành cho người học gần như bản ngữ (ví dụ: ubiquitous, meticulous, serendipity)'
+  };
+
+  const levelDesc = levelDescriptions[level] || levelDescriptions['B1'];
+
+  const payload = {
+    model: "llama-3.1-8b-instant",
+    messages: [
+      {
+        role: "system",
+        content:
+          "Bạn là hệ thống tạo câu hỏi trắc nghiệm từ vựng TOEIC theo cấp độ CEFR cho người Việt. " +
+          "Mỗi câu hỏi phải hỏi nghĩa của MỘT từ/cụm từ tiếng Việt sang TIẾNG ANH, phù hợp với cấp độ được yêu cầu. " +
+          "QUY TẮC NGÔN NGỮ BẮT BUỘC:\n" +
+          "- Trường `question` LUÔN LUÔN là TIẾNG VIỆT (câu hỏi/định nghĩa/ghi chú bằng tiếng Việt).\n" +
+          "- TẤT CẢ đáp án trong mảng `answer[].text` PHẢI LÀ TIẾNG ANH.\n" +
+          "- Không được dùng tiếng Việt trong đáp án.\n" +
+          "- Từ vựng phải phù hợp với cấp độ CEFR được yêu cầu.\n" +
+          "Luôn đảm bảo chỉ có đúng 1 đáp án đúng (isCorrect = true). Chỉ trả về JSON hợp lệ.",
+      },
+      {
+        role: "user",
+        content: `Hãy tạo ${numQuestions} câu hỏi trắc nghiệm từ vựng TOEIC cho người học tiếng Việt.
+Cấp độ CEFR: ${level} (${levelDesc}).
+
+Mỗi câu hỏi phải tuân thủ QUY TẮC sau:
+- Câu hỏi (field "question") là TIẾNG VIỆT, hỏi nghĩa của một từ/cụm từ (ngắn gọn, không dài dòng), ví dụ: "Từ tiếng Anh nào có nghĩa là 'máy tính'?" hoặc chỉ cần "máy tính".
+- 4 đáp án (field "answer"[]."text") đều là TỪ/CỤM TỪ TIẾNG ANH, ngắn gọn.
+- Không được có tiếng Việt trong bất kỳ đáp án nào.
+- Từ vựng phải phù hợp với độ khó cấp độ ${level} (${levelDesc}).
+- Đảm bảo chỉ có duy nhất 1 đáp án đúng (isCorrect = true).
+
+Yêu cầu format JSON CHÍNH XÁC như sau:
+[
+  {
+    "title": "TOEIC Vocabulary - Level ${level}",
+    "question": "Câu hỏi/định nghĩa/gợi ý bằng tiếng Việt",
+    "name": "toeic-vocabulary",
+    "level": "${level}",
+    "answer": [
+      { "text": "Từ/cụm từ tiếng Anh A", "isCorrect": false },
+      { "text": "Từ/cụm từ tiếng Anh B", "isCorrect": true },
+      { "text": "Từ/cụm từ tiếng Anh C", "isCorrect": false },
+      { "text": "Từ/cụm từ tiếng Anh D", "isCorrect": false }
+    ]
+  }
+]
+
+Chỉ trả về MẢNG JSON, không thêm giải thích, không thêm text ngoài JSON.`,
+      },
+    ],
+    temperature: 0.7,
+  };
+
+  const data = JSON.stringify(payload);
+
+  const options = {
+    hostname: "api.groq.com",
+    path: "/openai/v1/chat/completions",
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+      "Content-Length": Buffer.byteLength(data),
+    },
+  };
+
+  const responseBody = await new Promise((resolve, reject) => {
+    const req = https.request(options, (res) => {
+      let body = "";
+
+      res.on("data", (chunk) => {
+        body += chunk;
+      });
+
+      res.on("end", () => {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          return reject(
+            new Error(
+              `Groq API lỗi: ${res.statusCode} - ${body || res.statusMessage}`
+            )
+          );
+        }
+
+        resolve(body);
+      });
+    });
+
+    req.on("error", (err) => reject(err));
+
+    req.write(data);
+    req.end();
+  });
+
+  const parsed = JSON.parse(responseBody);
+
+  const content = parsed.choices?.[0]?.message?.content?.trim();
+  if (!content) {
+    throw new Error("Không nhận được nội dung từ Groq");
+  }
+
+  let questions;
+  try {
+    questions = JSON.parse(content);
+  } catch (err) {
+    console.error("Lỗi parse JSON từ nội dung Groq:", content);
+    throw new Error("Groq trả về nội dung không phải JSON hợp lệ");
+  }
+
+  if (!Array.isArray(questions)) {
+    throw new Error("Dữ liệu Groq trả về không phải mảng câu hỏi");
+  }
+
+  return questions;
+}
+
 module.exports = {
   generateVocabularyQuestions,
+  generateTOEICVocabularyByLevel,
 };

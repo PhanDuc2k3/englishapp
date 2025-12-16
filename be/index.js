@@ -9,6 +9,7 @@ const userRouter = require("./Routes/UserRoutes");
 const taskRouter = require("./Routes/TaskRoutes");
 const questionRouter = require("./Routes/QuestionRoutes");
 const giftRouter = require("./Routes/GiftRoutes");
+const folderRouter = require("./Routes/FolderRoutes");
 
 connectDB();
 
@@ -30,6 +31,7 @@ app.use("/api/user", userRouter);
 app.use("/api/task", taskRouter);
 app.use("/api/question", questionRouter);
 app.use("/api/gift", giftRouter);
+app.use("/api/folder", folderRouter);
 const PORT = process.env.PORT;
 
 app.listen(PORT, () => {

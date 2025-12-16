@@ -16,6 +16,12 @@ const QuestionList: React.FC = () => {
     topic: "daily life",
   });
 
+  // ⚙️ cấu hình sinh từ vựng TOEIC theo cấp độ
+  const [toeicConfig, setToeicConfig] = useState({
+    numQuestions: 10,
+    level: "B1" as 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2',
+  });
+
   const [newQuestion, setNewQuestion] = useState<NewQuestion>({
     title: "",
     name: "",
@@ -175,52 +181,127 @@ const QuestionList: React.FC = () => {
           >
             🤖 Sinh câu hỏi AI
           </button>
+
+          {/* Nút sinh từ vựng TOEIC theo cấp độ */}
+          <button
+            onClick={async () => {
+              try {
+                const res = await questionApi.generateTOEICByLevel({
+                  numQuestions: toeicConfig.numQuestions,
+                  level: toeicConfig.level,
+                });
+                const created = res.data.questions ?? [];
+                if (created.length > 0) {
+                  setQuestions((prev) => [...prev, ...created]);
+                  alert(`Đã sinh ${created.length} từ vựng TOEIC cấp độ ${toeicConfig.level} và lưu vào hệ thống`);
+                } else {
+                  alert("AI không sinh được từ vựng nào. Vui lòng thử lại.");
+                }
+              } catch (error: any) {
+                console.error("Lỗi khi sinh từ vựng TOEIC:", error);
+                const msg =
+                  error?.response?.data?.message ||
+                  "Lỗi khi sinh từ vựng TOEIC. Có thể bạn không phải admin hoặc server AI lỗi.";
+                alert(msg);
+              }
+            }}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2 rounded"
+          >
+            📚 Sinh từ vựng TOEIC
+          </button>
         </div>
       </div>
 
       {/* Form cấu hình AI */}
-      <div className="bg-white rounded-lg p-3 mb-4 shadow-sm flex flex-wrap gap-3 text-sm">
-        <div>
-          <label className="block font-semibold mb-1">Số câu hỏi</label>
-          <input
-            type="number"
-            min={1}
-            max={50}
-            value={aiConfig.numQuestions}
-            onChange={(e) =>
-              setAiConfig((prev) => ({
-                ...prev,
-                numQuestions: Number(e.target.value) || 1,
-              }))
-            }
-            className="border rounded px-2 py-1 w-24"
-          />
-        </div>
+      <div className="bg-white rounded-lg p-3 mb-4 shadow-sm">
+        <h3 className="font-bold mb-2 text-sm">⚙️ Cấu hình sinh câu hỏi AI</h3>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <div>
+            <label className="block font-semibold mb-1">Số câu hỏi</label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={aiConfig.numQuestions}
+              onChange={(e) =>
+                setAiConfig((prev) => ({
+                  ...prev,
+                  numQuestions: Number(e.target.value) || 1,
+                }))
+              }
+              className="border rounded px-2 py-1 w-24"
+            />
+          </div>
 
-        <div>
-          <label className="block font-semibold mb-1">Thể loại</label>
-          <select
-            value={aiConfig.category}
-            onChange={(e) =>
-              setAiConfig((prev) => ({ ...prev, category: e.target.value }))
-            }
-            className="border rounded px-2 py-1"
-          >
-            <option value="vocabulary">Từ vựng</option>
-          </select>
-        </div>
+          <div>
+            <label className="block font-semibold mb-1">Thể loại</label>
+            <select
+              value={aiConfig.category}
+              onChange={(e) =>
+                setAiConfig((prev) => ({ ...prev, category: e.target.value }))
+              }
+              className="border rounded px-2 py-1"
+            >
+              <option value="vocabulary">Từ vựng</option>
+            </select>
+          </div>
 
-        <div className="flex-1 min-w-[180px]">
-          <label className="block font-semibold mb-1">Chủ đề</label>
-          <input
-            type="text"
-            placeholder="VD: travel, food, technology..."
-            value={aiConfig.topic}
-            onChange={(e) =>
-              setAiConfig((prev) => ({ ...prev, topic: e.target.value }))
-            }
-            className="border rounded px-2 py-1 w-full"
-          />
+          <div className="flex-1 min-w-[180px]">
+            <label className="block font-semibold mb-1">Chủ đề</label>
+            <input
+              type="text"
+              placeholder="VD: travel, food, technology..."
+              value={aiConfig.topic}
+              onChange={(e) =>
+                setAiConfig((prev) => ({ ...prev, topic: e.target.value }))
+              }
+              className="border rounded px-2 py-1 w-full"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Form cấu hình TOEIC */}
+      <div className="bg-white rounded-lg p-3 mb-4 shadow-sm">
+        <h3 className="font-bold mb-2 text-sm">📚 Cấu hình sinh từ vựng TOEIC theo cấp độ</h3>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <div>
+            <label className="block font-semibold mb-1">Số từ vựng</label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={toeicConfig.numQuestions}
+              onChange={(e) =>
+                setToeicConfig((prev) => ({
+                  ...prev,
+                  numQuestions: Number(e.target.value) || 1,
+                }))
+              }
+              className="border rounded px-2 py-1 w-24"
+            />
+          </div>
+
+          <div>
+            <label className="block font-semibold mb-1">Cấp độ CEFR</label>
+            <select
+              value={toeicConfig.level}
+              onChange={(e) =>
+                setToeicConfig((prev) => ({ 
+                  ...prev, 
+                  level: e.target.value as 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+                }))
+              }
+              className="border rounded px-2 py-1"
+            >
+              <option value="A1">A1 - Cơ bản nhất</option>
+              <option value="A2">A2 - Cơ bản</option>
+              <option value="B1">B1 - Trung cấp</option>
+              <option value="B2">B2 - Trung cấp cao</option>
+              <option value="C1">C1 - Cao cấp</option>
+              <option value="C2">C2 - Thành thạo</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -257,7 +338,14 @@ const QuestionList: React.FC = () => {
               </ul>
 
               <div className="flex justify-between text-xs italic">
-                <p>Người tạo: Minh Đức</p>
+                <p>
+                  Người tạo: Minh Đức
+                  {q.level && (
+                    <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-semibold">
+                      Level: {q.level}
+                    </span>
+                  )}
+                </p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleEdit(q)}

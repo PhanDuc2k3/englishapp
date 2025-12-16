@@ -94,3 +94,28 @@ exports.generateAIQuestions = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// 🔹 Admin dùng Grok để sinh từ vựng TOEIC theo cấp độ
+exports.generateTOEICQuestionsByLevel = async (req, res) => {
+  try {
+    const { numQuestions, level } = req.body;
+
+    const count = Number(numQuestions) || 10;
+    const safeLevel = level || "B1";
+
+    const created = await QuestionService.generateTOEICQuestionsByLevel({
+      numQuestions: count,
+      level: safeLevel,
+    });
+
+    res.status(200).json({
+      message: `Sinh từ vựng TOEIC cấp độ ${safeLevel} thành công`,
+      total: created.length,
+      level: safeLevel,
+      questions: created,
+    });
+  } catch (error) {
+    console.error("Lỗi generateTOEICQuestionsByLevel:", error);
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -48,6 +48,13 @@ const taskApi = {
       data
     ),
 
+  // Cập nhật thông tin task (tên, folder, etc.)
+  update: (id: string, data: Partial<NewTask>) =>
+    axiosClient.put<{ message: string; task: Task }>(
+      `/task/update/${id}`,
+      data
+    ),
+
   // Thêm câu hỏi vào task
   addQuestion: (taskId: string, data: QuestionAdd) =>
     axiosClient.put<{ message: string; task: Task }>(
